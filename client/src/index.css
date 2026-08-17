@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-zinc-950);
+  color: var(--color-zinc-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fires whenever a stock number changes, so a remote update is impossible to
+   miss even if you are looking at another part of the card. */
+@keyframes stock-pulse {
+  0% {
+    transform: scale(1);
+    color: var(--color-zinc-50);
+  }
+  30% {
+    transform: scale(1.12);
+    color: var(--color-emerald-300);
+  }
+  100% {
+    transform: scale(1);
+    color: var(--color-zinc-50);
+  }
+}
+
+.animate-stock-pulse {
+  animation: stock-pulse 700ms ease-out;
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in {
+  animation: fade-slide-in 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stock-pulse,
+  .animate-fade-slide-in {
+    animation: none;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "real-time-inventory-system",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Real-time limited-edition drop inventory system with atomic reservations",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "db:migrate": "npm run db:migrate --workspace server --",
+    "db:seed": "npm run db:seed --workspace server --",
+    "stress": "npm run stress --workspace server --"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

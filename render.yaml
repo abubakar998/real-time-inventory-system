@@ -1,0 +1,30 @@
+# Single-origin deployment: one long-lived Node process serves the Express API,
+# the Socket.io server and the built React SPA. Point DATABASE_URL at Neon.
+#
+# Why not Vercel for the backend: Socket.io needs a persistent process holding
+# open connections, and Vercel's Node functions are short-lived and serverless.
+# The React client deploys to Vercel perfectly well — see README ("Deployment").
+
+services:
+  - type: web
+    name: drop-room
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # set in the Render dashboard — never commit credentials
+      - key: PGSSL
+        value: 'true'
+      - key: CLIENT_ORIGIN
+        sync: false # e.g. https://drop-room.onrender.com
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: RESERVATION_TTL_SECONDS
+        value: '60'
+      - key: SWEEP_INTERVAL_MS
+        value: '2000'
