@@ -421,24 +421,74 @@ first row.
 `DATABASE_URL`; TLS is auto-detected for `neon.tech` hosts. Apply the schema
 once with `npm run db:migrate` (or `psql "$DATABASE_URL" -f server/sql/schema.sql`).
 
-**App:** the spec suggests Vercel, and that works for the React client — but
-**not for this backend**. Socket.io needs a persistent process holding open
-connections, and Vercel's Node functions are short-lived and serverless; a
-socket server deployed there will connect, then drop. Two honest options:
+### Why the API is not on Vercel
 
-1. **Single origin (recommended).** Deploy the whole repo to Render / Railway /
-   Fly as one long-lived Node service. `npm run build` produces `client/dist`,
-   which Express serves automatically, so the SPA and the WebSocket share a
-   host and CORS is a non-issue. [`render.yaml`](render.yaml) is included:
-   build `npm install && npm run build`, start `npm start`, health check
-   `/api/health`.
+The spec suggests Vercel, and it is the right host for the React client — but
+the backend cannot go there, and this is architectural rather than a plan limit.
 
-2. **Split hosts.** Client on Vercel, API on Render/Railway/Fly. Set
-   `VITE_API_URL=https://your-api-host` at client build time and
-   `CLIENT_ORIGIN=https://your-vercel-app.vercel.app` on the server.
+Vercel runs Node as **serverless functions**: spawned per request, killed when
+the response returns. A Socket.io server is the opposite shape — one process
+that stays resident holding every client's connection so it can push
+`drop:updated` later. There is no process to hold them.
+
+The usual escape hatch does not rescue it either: Socket.io can fall back to
+HTTP long-polling, but polling requires every request from a client to reach the
+*same* process holding its session (sticky sessions), and serverless hands you a
+fresh instance each time. So the live-stock requirement — the point of the
+exercise — is precisely what breaks.
+
+The API therefore needs a host that runs a persistent process: Render, Railway,
+Fly, or any VPS.
+
+### Option A — single origin (simplest)
+
+Deploy the whole repo to Render as one long-lived Node service. `npm run build`
+produces `client/dist`, which Express serves automatically, so the SPA and the
+WebSocket share a host and CORS never enters the picture.
+
+[`render.yaml`](render.yaml) is included and describes it: build
+`npm install && npm run build`, start `npm start`, health check `/api/health`.
+Set `DATABASE_URL` and `CLIENT_ORIGIN` (your own Render URL) in the dashboard.
+
+### Option B — split hosts (client on Vercel)
+
+[`vercel.json`](vercel.json) is committed and configures the client build.
+Note that its commands run from the **repo root**, not `client/` — this is an
+npm workspaces monorepo, and a root install is what lets npm hoist and resolve
+the client's dependencies. Keeping it in the file rather than in dashboard
+settings means the build is reproducible from a clone alone.
+
+1. **Deploy the API to Render first** — you need its URL before building the
+   client. Set `DATABASE_URL` (Neon), `PGSSL=true`, and `ADMIN_TOKEN`.
+2. **Import the repo into Vercel.** Leave *Root Directory* **empty**;
+   `vercel.json` handles the rest. Vercel will detect no framework, which is
+   expected.
+3. **Set `VITE_API_URL`** in Vercel's environment variables to your Render URL
+   (e.g. `https://drop-room-api.onrender.com`), then deploy. This is inlined at
+   **build** time, not read at runtime — changing it later needs a redeploy.
+4. **Set `CLIENT_ORIGIN`** on Render to your Vercel URL
+   (e.g. `https://drop-room.vercel.app`) and restart. This feeds both the CORS
+   allow-list and the Socket.io handshake; if it is wrong, the dashboard loads
+   but the stock counter never moves.
+
+`CLIENT_ORIGIN` accepts a comma-separated list. Vercel preview deployments get a
+fresh URL per commit and will fail CORS unless you add them explicitly — set the
+production domain and add preview URLs as needed.
+
+### Free-tier caveats worth knowing before you submit a link
+
+- **Render's free tier spins down after ~15 minutes idle, and cold start is
+  roughly 50 seconds.** A reviewer opening a cold link sees a dead page. Either
+  point an uptime pinger at `/api/health` every 10 minutes to keep it warm, or
+  budget for a paid instance for the review window.
+- **Neon free autosuspends too**, but wakes in about a second — not a real
+  problem.
+- **Do not set `NODE_ENV=production` as a Vercel build variable.** npm then
+  skips `devDependencies`, Vite is never installed, and the build fails.
+- Free-tier terms change often; verify current policies before relying on them.
 
 Never commit `server/.env` — it is gitignored. Set `DATABASE_URL`,
-`CLIENT_ORIGIN` and `ADMIN_TOKEN` through the host's environment settings.
+`CLIENT_ORIGIN` and `ADMIN_TOKEN` through each host's environment settings.
 
 ---
 
