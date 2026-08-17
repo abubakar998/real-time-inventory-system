@@ -13,6 +13,7 @@ Sequelize · Socket.io
 
 - [Quick start](#quick-start)
 - [Proving it does not oversell](#proving-it-does-not-oversell)
+- [Testing guide](doc/TESTING.md) — step-by-step verification of every requirement
 - [Architecture](#architecture)
   - [Concurrency: how overselling is prevented](#concurrency-how-overselling-is-prevented)
   - [Expiration: how the 60-second window works](#expiration-how-the-60-second-window-works)
@@ -130,6 +131,9 @@ then checks the **database**, not the API responses:
 ```
 
 Exit code is non-zero if anything oversells, so it drops straight into CI.
+
+For a full walkthrough of every requirement — including the real-time sync,
+expiry recovery and activity feed by hand — see **[doc/TESTING.md](doc/TESTING.md)**.
 
 ### Measured behaviour
 
