@@ -39,9 +39,15 @@ module.exports = {
   useSsl,
   sqlLog: bool(process.env.SQL_LOG),
 
+  // Trailing slashes are stripped because a browser's `Origin` header never has
+  // one ("https://app.vercel.app", never "https://app.vercel.app/"), while the
+  // CORS check is an exact string match. Pasting the URL straight from the
+  // address bar — which does include the slash — would otherwise silently
+  // reject every request, and the browser reports it as a missing
+  // Access-Control-Allow-Origin rather than as a config typo.
   clientOrigins: (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean),
 
   reservationTtlSeconds: int(process.env.RESERVATION_TTL_SECONDS, 60),
