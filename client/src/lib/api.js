@@ -1,6 +1,10 @@
 import { syncFromServerTime } from './clock';
 
-const BASE_URL = import.meta.env.VITE_API_URL || '';
+// Trailing slashes are stripped: paths below all start with "/", so a
+// VITE_API_URL of "https://api.example.com/" would otherwise produce
+// "https://api.example.com//api/drops" — which Express does not match, and
+// which 404s in a way that looks like a CORS problem in the browser console.
+const BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 export class ApiError extends Error {
   constructor({ code, message, details, status }) {

@@ -1,6 +1,8 @@
 import { io } from 'socket.io-client';
 
-const BASE_URL = import.meta.env.VITE_API_URL || undefined; // undefined => same origin
+// Trailing slash stripped for the same reason as in api.js.
+// undefined => same origin.
+const BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || undefined;
 
 /**
  * One shared connection per tab. Created eagerly but connected by <App/>, so
