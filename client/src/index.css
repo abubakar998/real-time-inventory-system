@@ -18,6 +18,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Browsers give <button> `cursor: default` in their UA stylesheet, and neither
+   Tailwind's preflight nor anything here overrode it — so every action in the
+   app read as unclickable on hover. Setting it once in the base layer, rather
+   than adding `cursor-pointer` to <Button>, also covers the raw <button>s in
+   the header and login screen. `:not(:disabled)` leaves the existing
+   `disabled:cursor-not-allowed` utility in charge when a button is inert. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* Fires whenever a stock number changes, so a remote update is impossible to
    miss even if you are looking at another part of the card. */
 @keyframes stock-pulse {
