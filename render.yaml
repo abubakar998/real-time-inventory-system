@@ -10,7 +10,11 @@ services:
     name: drop-room
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    # `--include=dev` is required, not optional. Render exposes NODE_ENV during
+    # the build, and with NODE_ENV=production npm omits devDependencies — which
+    # is where vite, tailwindcss and esbuild live. Without this flag the build
+    # dies with "vite: not found".
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:

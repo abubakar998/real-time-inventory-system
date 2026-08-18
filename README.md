@@ -450,9 +450,28 @@ Deploy the whole repo to Render as one long-lived Node service. `npm run build`
 produces `client/dist`, which Express serves automatically, so the SPA and the
 WebSocket share a host and CORS never enters the picture.
 
-[`render.yaml`](render.yaml) is included and describes it: build
-`npm install && npm run build`, start `npm start`, health check `/api/health`.
-Set `DATABASE_URL` and `CLIENT_ORIGIN` (your own Render URL) in the dashboard.
+[`render.yaml`](render.yaml) is included and describes it. If you configure the
+service by hand instead, these are the values:
+
+| Setting | Value |
+|---|---|
+| Root Directory | **leave empty** — npm workspaces need a root install |
+| Build Command | `npm install --include=dev && npm run build` |
+| Start Command | `npm start` |
+| Health Check Path | `/api/health` |
+
+`--include=dev` is required, not cosmetic. Render exposes `NODE_ENV` during the
+build, and under `NODE_ENV=production` npm omits `devDependencies` — which is
+where `vite`, `tailwindcss` and `esbuild` live. Without the flag the build dies
+with `vite: not found`.
+
+Environment variables: `DATABASE_URL` (Neon), `PGSSL=true`, `ADMIN_TOKEN`, and
+`CLIENT_ORIGIN` set to the service's own URL. You cannot know that URL until the
+service exists, so deploy once, copy the URL, set `CLIENT_ORIGIN`, and restart —
+until you do, the page loads but the stock counter never moves, because the
+Socket.io handshake is rejected.
+
+The server binds to `process.env.PORT`, which Render injects automatically.
 
 ### Option B — split hosts (client on Vercel)
 
