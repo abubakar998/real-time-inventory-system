@@ -390,8 +390,10 @@ Authenticated routes take an `x-user-id` header.
 | `GET` | `/api/reservations/mine` | ✅ | Your last 25 holds and their outcome |
 
 \* `POST /api/drops` requires `x-admin-token` **only if** `ADMIN_TOKEN` is set.
-It is left unset locally to keep setup frictionless; set it in any deployed
-environment.
+It is left unset both locally and on the demo deploy, because the browser client
+does not send that header — the **New drop** panel would 403 against a guarded
+API. Set `ADMIN_TOKEN` when you want drop creation locked to operators, and
+drive the endpoint with `curl` from there on.
 
 **Create a drop:**
 
@@ -465,11 +467,14 @@ build, and under `NODE_ENV=production` npm omits `devDependencies` — which is
 where `vite`, `tailwindcss` and `esbuild` live. Without the flag the build dies
 with `vite: not found`.
 
-Environment variables: `DATABASE_URL` (Neon), `PGSSL=true`, `ADMIN_TOKEN`, and
-`CLIENT_ORIGIN` set to the service's own URL. You cannot know that URL until the
-service exists, so deploy once, copy the URL, set `CLIENT_ORIGIN`, and restart —
-until you do, the page loads but the stock counter never moves, because the
-Socket.io handshake is rejected.
+Environment variables: `DATABASE_URL` (Neon), `PGSSL=true`, and `CLIENT_ORIGIN`
+set to the service's own URL. You cannot know that URL until the service exists,
+so deploy once, copy the URL, set `CLIENT_ORIGIN`, and restart — until you do,
+the page loads but the stock counter never moves, because the Socket.io
+handshake is rejected.
+
+Leave `ADMIN_TOKEN` unset unless you intend drop creation to be curl-only — see
+the note under the API table.
 
 The server binds to `process.env.PORT`, which Render injects automatically.
 
@@ -482,7 +487,7 @@ the client's dependencies. Keeping it in the file rather than in dashboard
 settings means the build is reproducible from a clone alone.
 
 1. **Deploy the API to Render first** — you need its URL before building the
-   client. Set `DATABASE_URL` (Neon), `PGSSL=true`, and `ADMIN_TOKEN`.
+   client. Set `DATABASE_URL` (Neon) and `PGSSL=true`.
 2. **Import the repo into Vercel.** Leave *Root Directory* **empty**;
    `vercel.json` handles the rest. Vercel will detect no framework, which is
    expected.
@@ -498,6 +503,32 @@ settings means the build is reproducible from a clone alone.
 fresh URL per commit and will fail CORS unless you add them explicitly — set the
 production domain and add preview URLs as needed.
 
+> **Trailing slashes:** a browser's `Origin` header is scheme + host + port and
+> never has a trailing slash, while the CORS check is an exact string match.
+> Pasting a URL straight from the address bar gives you `https://app.com/`,
+> which would match nothing. [`env.js`](server/src/config/env.js) strips
+> trailing slashes from every `CLIENT_ORIGIN` entry, and the client strips them
+> from `VITE_API_URL`, so both spellings work.
+
+### Running A and B at the same time
+
+The two are not exclusive — both front ends can be live against the same API and
+database, and they stay in sync with each other in real time. That makes for a
+better demo than two localhost ports, because the two windows show visibly
+different domains.
+
+The same source builds differently in each place:
+
+| | Render build | Vercel build |
+|---|---|---|
+| `VITE_API_URL` | not set | the Render URL |
+| Requests go to | `/api/drops` — relative, same origin | `https://…onrender.com/api/drops` |
+| CORS | never consulted | must allow the Vercel origin |
+
+So Render's copy never needs `CLIENT_ORIGIN` at all — same-origin requests skip
+CORS entirely. Only Vercel's copy depends on it. List both URLs anyway, so the
+value doesn't point at a host you are not using.
+
 ### Free-tier caveats worth knowing before you submit a link
 
 - **Render's free tier spins down after ~15 minutes idle, and cold start is
@@ -510,8 +541,9 @@ production domain and add preview URLs as needed.
   skips `devDependencies`, Vite is never installed, and the build fails.
 - Free-tier terms change often; verify current policies before relying on them.
 
-Never commit `server/.env` — it is gitignored. Set `DATABASE_URL`,
-`CLIENT_ORIGIN` and `ADMIN_TOKEN` through each host's environment settings.
+Never commit `server/.env` — it is gitignored. Set `DATABASE_URL` and
+`CLIENT_ORIGIN` (and `ADMIN_TOKEN`, if you use it) through each host's
+environment settings.
 
 ---
 

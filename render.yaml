@@ -26,8 +26,10 @@ services:
         value: 'true'
       - key: CLIENT_ORIGIN
         sync: false # e.g. https://drop-room.onrender.com
-      - key: ADMIN_TOKEN
-        generateValue: true
+      # ADMIN_TOKEN is deliberately left unset. The browser client never sends
+      # x-admin-token (see client/src/lib/api.js), so setting it here would 403
+      # every drop created from the New drop panel. Set it in a real deployment
+      # and drive POST /api/drops with curl.
       - key: RESERVATION_TTL_SECONDS
         value: '60'
       - key: SWEEP_INTERVAL_MS
